@@ -130,8 +130,17 @@ func (s *Scraper) SetProxy(proxyAddr string) error {
 			Timeout:   s.client.Timeout,
 			KeepAlive: s.client.Timeout,
 		}
-		socksHostPort := strings.ReplaceAll(proxyAddr, "socks5://", "")
-		dialSocksProxy, err := proxy.SOCKS5("tcp", socksHostPort, nil, baseDialer)
+		u, err := url.Parse(proxyAddr)
+		if err != nil {
+			return err
+		}
+		socksHostPort := u.Host
+		passwd, ok := u.User.Password()
+		var auth *proxy.Auth
+		if u.User.Username() != "" && ok {
+			auth = &proxy.Auth{User: u.User.Username(), Password: passwd}
+		}
+		dialSocksProxy, err := proxy.SOCKS5("tcp", socksHostPort, auth, baseDialer)
 		if err != nil {
 			return errors.New("error creating socks5 proxy :" + err.Error())
 		}
